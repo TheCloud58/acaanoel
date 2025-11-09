@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Acaanoël MVP</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 20px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+            max-width: 500px;
+            width: 100%;
+        }
+        h1 {
+            text-align: center;
+            color: #667eea;
+            margin-bottom: 30px;
+            font-size: 28px;
+        }
+        .phase {
+            margin-bottom: 30px;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 10px;
+        }
+        .phase h2 {
+            font-size: 18px;
+            margin-bottom: 15px;
+            color: #333;
+        }
+        .input-group {
+            margin-bottom: 15px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+            color: #555;
+        }
+        input, select {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            font-size: 16px;
+        }
+        input:focus, select:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        button {
+            width: 100%;
+            padding: 15px;
+            background: #667eea;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            margin-top: 10px;
+        }
+        button:hover {
+            background: #5568d3;
+        }
+        button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+        .result {
+            display: none;
+            text-align: center;
+            padding: 30px;
+            background: #e8f4f8;
+            border-radius: 10px;
+            margin-top: 20px;
+        }
+        .result.show {
+            display: block;
+        }
+        .probability {
+            font-size: 48px;
+            font-weight: bold;
+            color: #667eea;
+            margin: 20px 0;
+        }
+        .miracle {
+            color: #cc0000;
+            animation: pulse 1.5s infinite;
+        }
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.6; }
+        }
+        .card-info {
+            margin-top: 20px;
+            padding: 15px;
+            background: white;
+            border-radius: 8px;
+            font-size: 14px;
+            color: #666;
+        }
+        .hidden {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎄 Acaanoël MVP</h1>
+        
+        <!-- Phase 1: Albert -->
+        <div class="phase" id="phase1">
+            <h2>Phase 1 : Albert choisit une carte</h2>
+            <div class="input-group">
+                <label>Couleur</label>
+                <select id="couleur">
+                    <option value="">-- Choisir --</option>
+                    <option value="♠">♠ Pique</option>
+                    <option value="♥">♥ Cœur</option>
+                    <option value="♣">♣ Trèfle</option>
+                    <option value="♦">♦ Carreau</option>
+                </select>
+            </div>
+            <div class="input-group">
+                <label>Valeur</label>
+                <select id="valeur">
+                    <option value="">-- Choisir --</option>
+                    <option value="A">As</option>
+                    <option value="2">2</option>
+                    <option value="3">3</option>
+                    <option value="4">4</option>
+                    <option value="5">5</option>
+                    <option value="6">6</option>
+                    <option value="7">7</option>
+                    <option value="8">8</option>
+                    <option value="9">9</option>
+                    <option value="10">10</option>
+                    <option value="J">Valet</option>
+                    <option value="Q">Dame</option>
+                    <option value="K">Roi</option>
+                </select>
+            </div>
+            <button onclick="validerCarte()">Valider la carte</button>
+        </div>
+
+        <!-- Phase 2: Bernard -->
+        <div class="phase hidden" id="phase2">
+            <h2>Phase 2 : Bernard choisit un nombre</h2>
+            <div class="input-group">
+                <label>Position (1-52)</label>
+                <input type="number" id="position" min="1" max="52" placeholder="Ex: 23">
+            </div>
+            <button onclick="calculer()">Calculer la synchronicité</button>
+        </div>
+
+        <!-- Résultat -->
+        <div class="result" id="result">
+            <h2>Probabilité de synchronicité</h2>
+            <div class="probability" id="probability"></div>
+            <div class="card-info" id="cardInfo"></div>
+        </div>
+    </div>
+
+    <script>
+        // Ordre Mnemonica complet
+        const MNEMONICA = [
+            "4♣", "2♥", "7♦", "3♣", "4♥", "6♦", "A♠", "5♥", "9♠", "2♠", "Q♥", "3♦", "Q♣",
+            "8♥", "6♠", "5♠", "9♥", "K♣", "2♦", "J♥", "3♠", "8♠", "6♥", "10♣", "5♦", "K♦",
+            "2♣", "3♥", "8♦", "5♣", "K♠", "J♦", "8♣", "10♠", "K♥", "J♣", "7♠", "10♥", "A♦",
+            "4♠", "7♥", "4♦", "A♣", "9♣", "J♠", "Q♦", "7♣", "10♦", "Q♠", "6♣", "A♥", "9♦"
+        ];
+
+        // Mapping couleurs pour le code
+        const COULEUR_CODE = {
+            '♠': '1',
+            '♥': '2',
+            '♣': '3',
+            '♦': '4'
+        };
+
+        // Mapping valeurs pour le code
+        const VALEUR_CODE = {
+            'A': '01', '2': '02', '3': '03', '4': '04', '5': '05',
+            '6': '06', '7': '07', '8': '08', '9': '09', '10': '10',
+            'J': '11', 'Q': '12', 'K': '13'
+        };
+
+        let carteChoisie = '';
+
+        function validerCarte() {
+            const couleur = document.getElementById('couleur').value;
+            const valeur = document.getElementById('valeur').value;
+            
+            if (!couleur || !valeur) {
+                alert('Veuillez choisir une couleur et une valeur');
+                return;
+            }
+            
+            carteChoisie = valeur + couleur;
+            document.getElementById('phase1').classList.add('hidden');
+            document.getElementById('phase2').classList.remove('hidden');
+        }
+
+        function calculer() {
+            const positionCible = parseInt(document.getElementById('position').value);
+            
+            if (!positionCible || positionCible < 1 || positionCible > 52) {
+                alert('Veuillez entrer un nombre entre 1 et 52');
+                return;
+            }
+
+            // Trouver position actuelle de la carte dans Mnemonica
+            const positionActuelle = MNEMONICA.indexOf(carteChoisie) + 1; // +1 car indexOf commence à 0
+            
+            if (positionActuelle === 0) {
+                alert('Carte non trouvée dans Mnemonica');
+                return;
+            }
+
+            // Calculer nombre de cartes à couper
+            let nombreACouper;
+            if (positionActuelle >= positionCible) {
+                nombreACouper = positionActuelle - positionCible;
+            } else {
+                nombreACouper = positionActuelle - positionCible + 52;
+            }
+
+            // Cas miracle : carte déjà en position
+            if (nombreACouper === 0) {
+                afficherResultat('0.0666%', carteChoisie, true);
+                return;
+            }
+
+            // Trouver la carte de coupe (position nombreACouper dans Mnemonica)
+            const carteDeCoupe = MNEMONICA[nombreACouper - 1]; // -1 car array commence à 0
+            
+            // Encoder la carte de coupe
+            const probabilite = encoderCarte(carteDeCoupe);
+            
+            afficherResultat(probabilite, carteDeCoupe, false);
+        }
+
+        function encoderCarte(carte) {
+            // Extraire couleur (dernier caractère)
+            const couleur = carte.slice(-1);
+            // Extraire valeur (tout sauf dernier caractère)
+            const valeur = carte.slice(0, -1);
+            
+            const codeCouleur = COULEUR_CODE[couleur];
+            const codeValeur = VALEUR_CODE[valeur];
+            
+            return `0.0${codeCouleur}${codeValeur}%`;
+        }
+
+        function afficherResultat(probabilite, carteInfo, isMiracle) {
+            const probElement = document.getElementById('probability');
+            const infoElement = document.getElementById('cardInfo');
+            
+            probElement.textContent = probabilite;
+            
+            if (isMiracle) {
+                probElement.classList.add('miracle');
+                infoElement.innerHTML = `
+                    <strong>😈 MIRACLE !</strong><br>
+                    La carte est déjà en position.<br>
+                    Pas de coupe nécessaire !
+                `;
+            } else {
+                probElement.classList.remove('miracle');
+                infoElement.innerHTML = `
+                    <strong>Carte de coupe : ${carteInfo}</strong><br>
+                    (Couper toutes les cartes au-dessus + celle-ci vers le dessous)
+                `;
+            }
+            
+            document.getElementById('result').classList.add('show');
+        }
+    </script>
+</body>
+</html>
