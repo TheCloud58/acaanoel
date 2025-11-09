@@ -83,6 +83,27 @@
             background: #ccc;
             cursor: not-allowed;
         }
+        .voice-btn {
+            width: auto;
+            padding: 10px 20px;
+            margin-top: 10px;
+            background: #52c41a;
+            font-size: 24px;
+        }
+        .voice-btn:hover {
+            background: #3da615;
+        }
+        .voice-btn.listening {
+            background: #ff4d4f;
+            animation: pulse 1s infinite;
+        }
+        .voice-status {
+            text-align: center;
+            margin-top: 10px;
+            font-size: 14px;
+            color: #666;
+            min-height: 20px;
+        }
         .result {
             display: none;
             text-align: center;
@@ -157,6 +178,8 @@
                     <option value="K">Roi</option>
                 </select>
             </div>
+            <button class="voice-btn" onclick="ecouterCarte()" id="micCarte">🎤 Dire la carte</button>
+            <div class="voice-status" id="statusCarte"></div>
             <button onclick="validerCarte()">Valider la carte</button>
         </div>
 
@@ -167,6 +190,8 @@
                 <label>Position (1-52)</label>
                 <input type="number" id="position" min="1" max="52" placeholder="Ex: 23">
             </div>
+            <button class="voice-btn" onclick="ecouterNombre()" id="micNombre">🎤 Dire le nombre</button>
+            <div class="voice-status" id="statusNombre"></div>
             <button onclick="calculer()">Calculer la synchronicité</button>
         </div>
 
@@ -175,6 +200,7 @@
             <h2>Probabilité de synchronicité</h2>
             <div class="probability" id="probability"></div>
             <div class="card-info" id="cardInfo"></div>
+            <button onclick="reinitialiser()" style="margin-top: 20px; background: #764ba2;">🔄 Nouveau tour</button>
         </div>
     </div>
 
@@ -203,6 +229,167 @@
         };
 
         let carteChoisie = '';
+
+        // Configuration reconnaissance vocale
+        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+        let recognition = null;
+
+        if (SpeechRecognition) {
+            recognition = new SpeechRecognition();
+            recognition.lang = 'fr-FR';
+            recognition.continuous = false;
+            recognition.interimResults = false;
+        }
+
+        // Dictionnaires de conversion vocale
+        const NOMBRES_VOCAUX = {
+            'un': 1, 'une': 1, 'deux': 2, 'trois': 3, 'quatre': 4, 'cinq': 5,
+            'six': 6, 'sept': 7, 'huit': 8, 'neuf': 9, 'dix': 10,
+            'onze': 11, 'douze': 12, 'treize': 13, 'quatorze': 14, 'quinze': 15,
+            'seize': 16, 'dix-sept': 17, 'dix sept': 17, 'dix-huit': 18, 'dix huit': 18,
+            'dix-neuf': 19, 'dix neuf': 19, 'vingt': 20, 'vingt-et-un': 21, 'vingt et un': 21,
+            'vingt-deux': 22, 'vingt deux': 22, 'vingt-trois': 23, 'vingt trois': 23,
+            'vingt-quatre': 24, 'vingt quatre': 24, 'vingt-cinq': 25, 'vingt cinq': 25,
+            'vingt-six': 26, 'vingt six': 26, 'vingt-sept': 27, 'vingt sept': 27,
+            'vingt-huit': 28, 'vingt huit': 28, 'vingt-neuf': 29, 'vingt neuf': 29,
+            'trente': 30, 'trente-et-un': 31, 'trente et un': 31, 'trente-deux': 32, 'trente deux': 32,
+            'trente-trois': 33, 'trente trois': 33, 'trente-quatre': 34, 'trente quatre': 34,
+            'trente-cinq': 35, 'trente cinq': 35, 'trente-six': 36, 'trente six': 36,
+            'trente-sept': 37, 'trente sept': 37, 'trente-huit': 38, 'trente huit': 38,
+            'trente-neuf': 39, 'trente neuf': 39, 'quarante': 40, 'quarante-et-un': 41,
+            'quarante et un': 41, 'quarante-deux': 42, 'quarante deux': 42,
+            'quarante-trois': 43, 'quarante trois': 43, 'quarante-quatre': 44, 'quarante quatre': 44,
+            'quarante-cinq': 45, 'quarante cinq': 45, 'quarante-six': 46, 'quarante six': 46,
+            'quarante-sept': 47, 'quarante sept': 47, 'quarante-huit': 48, 'quarante huit': 48,
+            'quarante-neuf': 49, 'quarante neuf': 49, 'cinquante': 50, 'cinquante-et-un': 51,
+            'cinquante et un': 51, 'cinquante-deux': 52, 'cinquante deux': 52
+        };
+
+        const VALEURS_VOCALES = {
+            'as': 'A', 'un': 'A', 'une': 'A',
+            'deux': '2', 'trois': '3', 'quatre': '4', 'cinq': '5',
+            'six': '6', 'sept': '7', 'huit': '8', 'neuf': '9', 'dix': '10',
+            'valet': 'J', 'dame': 'Q', 'roi': 'K'
+        };
+
+        const COULEURS_VOCALES = {
+            'pique': '♠', 'piques': '♠', 'pic': '♠',
+            'coeur': '♥', 'cœur': '♥', 'coeurs': '♥', 'cœurs': '♥',
+            'trèfle': '♣', 'trefle': '♣', 'trèfles': '♣', 'trefles': '♣',
+            'carreau': '♦', 'carreaux': '♦'
+        };
+
+        function ecouterCarte() {
+            if (!recognition) {
+                alert('Reconnaissance vocale non disponible sur ce navigateur. Utilisez Safari sur iPhone.');
+                return;
+            }
+
+            const btn = document.getElementById('micCarte');
+            const status = document.getElementById('statusCarte');
+            
+            btn.classList.add('listening');
+            status.textContent = '🎤 Écoute... Dites "sept de cœur"';
+
+            recognition.onresult = (event) => {
+                const transcript = event.results[0][0].transcript.toLowerCase();
+                status.textContent = `Entendu : "${transcript}"`;
+                
+                // Parser la carte
+                const carte = parserCarte(transcript);
+                if (carte) {
+                    document.getElementById('valeur').value = carte.valeur;
+                    document.getElementById('couleur').value = carte.couleur;
+                    status.textContent = `✅ ${carte.valeur}${carte.couleur}`;
+                } else {
+                    status.textContent = '❌ Carte non reconnue. Réessayez.';
+                }
+                
+                btn.classList.remove('listening');
+            };
+
+            recognition.onerror = (event) => {
+                status.textContent = '❌ Erreur : ' + event.error;
+                btn.classList.remove('listening');
+            };
+
+            recognition.start();
+        }
+
+        function ecouterNombre() {
+            if (!recognition) {
+                alert('Reconnaissance vocale non disponible sur ce navigateur. Utilisez Safari sur iPhone.');
+                return;
+            }
+
+            const btn = document.getElementById('micNombre');
+            const status = document.getElementById('statusNombre');
+            
+            btn.classList.add('listening');
+            status.textContent = '🎤 Écoute... Dites un nombre';
+
+            recognition.onresult = (event) => {
+                const transcript = event.results[0][0].transcript.toLowerCase();
+                status.textContent = `Entendu : "${transcript}"`;
+                
+                // Parser le nombre
+                const nombre = parserNombre(transcript);
+                if (nombre && nombre >= 1 && nombre <= 52) {
+                    document.getElementById('position').value = nombre;
+                    status.textContent = `✅ Position ${nombre}`;
+                } else {
+                    status.textContent = '❌ Nombre non reconnu ou hors limites. Réessayez.';
+                }
+                
+                btn.classList.remove('listening');
+            };
+
+            recognition.onerror = (event) => {
+                status.textContent = '❌ Erreur : ' + event.error;
+                btn.classList.remove('listening');
+            };
+
+            recognition.start();
+        }
+
+        function parserCarte(texte) {
+            texte = texte.toLowerCase().replace(/[',\.\-]/g, ' ');
+            
+            let valeur = null;
+            let couleur = null;
+
+            // Chercher la valeur
+            for (const [mot, val] of Object.entries(VALEURS_VOCALES)) {
+                if (texte.includes(mot)) {
+                    valeur = val;
+                    break;
+                }
+            }
+
+            // Chercher la couleur
+            for (const [mot, coul] of Object.entries(COULEURS_VOCALES)) {
+                if (texte.includes(mot)) {
+                    couleur = coul;
+                    break;
+                }
+            }
+
+            if (valeur && couleur) {
+                return { valeur, couleur };
+            }
+            return null;
+        }
+
+        function parserNombre(texte) {
+            texte = texte.toLowerCase().replace(/[',\.]/g, ' ').trim();
+            
+            // Vérifier si c'est déjà un nombre
+            const num = parseInt(texte);
+            if (!isNaN(num)) return num;
+
+            // Chercher dans le dictionnaire
+            return NOMBRES_VOCAUX[texte] || null;
+        }
 
         function validerCarte() {
             const couleur = document.getElementById('couleur').value;
@@ -237,9 +424,9 @@
             // Calculer nombre de cartes à couper
             let nombreACouper;
             if (positionActuelle >= positionCible) {
-                nombreACouper = positionActuelle - positionCible;
+                nombreACouper = positionActuelle - positionCible + 1;
             } else {
-                nombreACouper = positionActuelle - positionCible + 52;
+                nombreACouper = positionActuelle - positionCible + 1 + 52;
             }
 
             // Cas miracle : carte déjà en position
@@ -291,6 +478,21 @@
             }
             
             document.getElementById('result').classList.add('show');
+        }
+
+        function reinitialiser() {
+            // Reset les champs
+            document.getElementById('couleur').value = '';
+            document.getElementById('valeur').value = '';
+            document.getElementById('position').value = '';
+            document.getElementById('statusCarte').textContent = '';
+            document.getElementById('statusNombre').textContent = '';
+            carteChoisie = '';
+            
+            // Reset l'affichage
+            document.getElementById('phase1').classList.remove('hidden');
+            document.getElementById('phase2').classList.add('hidden');
+            document.getElementById('result').classList.remove('show');
         }
     </script>
 </body>
