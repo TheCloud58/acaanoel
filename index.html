@@ -129,14 +129,6 @@
             0%, 100% { opacity: 1; }
             50% { opacity: 0.6; }
         }
-        .card-info {
-            margin-top: 20px;
-            padding: 15px;
-            background: white;
-            border-radius: 8px;
-            font-size: 14px;
-            color: #666;
-        }
         .hidden {
             display: none;
         }
@@ -199,7 +191,6 @@
         <div class="result" id="result">
             <h2>Probabilité de synchronicité</h2>
             <div class="probability" id="probability"></div>
-            <div class="card-info" id="cardInfo"></div>
             <button onclick="reinitialiser()" style="margin-top: 20px; background: #764ba2;">🔄 Nouveau tour</button>
         </div>
     </div>
@@ -428,18 +419,18 @@
                 return;
             }
 
+            // Cas miracle : carte déjà en position
+            if (positionActuelle === positionCible) {
+                afficherResultat('0.066600%', carteChoisie, true, positionActuelle);
+                return;
+            }
+
             // Calculer nombre de cartes à couper
             let nombreACouper;
             if (positionActuelle >= positionCible) {
                 nombreACouper = positionActuelle - positionCible + 1;
             } else {
                 nombreACouper = positionActuelle - positionCible + 1 + 52;
-            }
-
-            // Cas miracle : carte déjà en position
-            if (nombreACouper === 0) {
-                afficherResultat('0.0666%', carteChoisie, true, 0);
-                return;
             }
 
             // Trouver la carte de coupe (position nombreACouper dans Mnemonica)
@@ -468,24 +459,13 @@
 
         function afficherResultat(probabilite, carteInfo, isMiracle, positionMnemonica) {
             const probElement = document.getElementById('probability');
-            const infoElement = document.getElementById('cardInfo');
             
             probElement.textContent = probabilite;
             
             if (isMiracle) {
                 probElement.classList.add('miracle');
-                infoElement.innerHTML = `
-                    <strong>😈 MIRACLE !</strong><br>
-                    La carte est déjà en position.<br>
-                    Pas de coupe nécessaire !
-                `;
             } else {
                 probElement.classList.remove('miracle');
-                infoElement.innerHTML = `
-                    <strong>Carte de coupe : ${carteInfo}</strong><br>
-                    Position Mnemonica : ${positionMnemonica}<br>
-                    (Couper toutes les cartes au-dessus + celle-ci vers le dessous)
-                `;
             }
             
             document.getElementById('result').classList.add('show');
