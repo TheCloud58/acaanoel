@@ -230,15 +230,17 @@
 
         let carteChoisie = '';
 
-        // Reconnaissance vocale
-        const recognition = window.SpeechRecognition || window.webkitSpeechRecognition 
-            ? new (window.SpeechRecognition || window.webkitSpeechRecognition)() 
-            : null;
+        // Vérifier si la reconnaissance vocale est disponible
+        const SpeechRecognitionAPI = window.SpeechRecognition || window.webkitSpeechRecognition;
 
-        if (recognition) {
+        function creerReconnaissance() {
+            if (!SpeechRecognitionAPI) return null;
+            
+            const recognition = new SpeechRecognitionAPI();
             recognition.lang = 'fr-FR';
             recognition.continuous = false;
             recognition.interimResults = false;
+            return recognition;
         }
 
         // Dictionnaire des nombres en français
@@ -281,6 +283,8 @@
         };
 
         function ecouterCarte() {
+            const recognition = creerReconnaissance();
+            
             if (!recognition) {
                 alert('Reconnaissance vocale non disponible sur ce navigateur. Utilisez Safari sur iPhone.');
                 return;
@@ -318,6 +322,8 @@
         }
 
         function ecouterNombre() {
+            const recognition = creerReconnaissance();
+            
             if (!recognition) {
                 alert('Reconnaissance vocale non disponible sur ce navigateur. Utilisez Safari sur iPhone.');
                 return;
