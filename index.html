@@ -230,44 +230,45 @@
 
         let carteChoisie = '';
 
-        // Configuration reconnaissance vocale
-        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-        let recognition = null;
+        // Reconnaissance vocale
+        const recognition = window.SpeechRecognition || window.webkitSpeechRecognition 
+            ? new (window.SpeechRecognition || window.webkitSpeechRecognition)() 
+            : null;
 
-        if (SpeechRecognition) {
-            recognition = new SpeechRecognition();
+        if (recognition) {
             recognition.lang = 'fr-FR';
             recognition.continuous = false;
             recognition.interimResults = false;
         }
 
-        // Dictionnaires de conversion vocale
+        // Dictionnaire des nombres en français
         const NOMBRES_VOCAUX = {
-            'un': 1, 'une': 1, 'deux': 2, 'trois': 3, 'quatre': 4, 'cinq': 5,
+            'un': 1, 'deux': 2, 'trois': 3, 'quatre': 4, 'cinq': 5,
             'six': 6, 'sept': 7, 'huit': 8, 'neuf': 9, 'dix': 10,
             'onze': 11, 'douze': 12, 'treize': 13, 'quatorze': 14, 'quinze': 15,
             'seize': 16, 'dix-sept': 17, 'dix sept': 17, 'dix-huit': 18, 'dix huit': 18,
-            'dix-neuf': 19, 'dix neuf': 19, 'vingt': 20, 'vingt-et-un': 21, 'vingt et un': 21,
+            'dix-neuf': 19, 'dix neuf': 19, 'vingt': 20,
+            'vingt-et-un': 21, 'vingt et un': 21, 'vingt-un': 21, 'vingt un': 21,
             'vingt-deux': 22, 'vingt deux': 22, 'vingt-trois': 23, 'vingt trois': 23,
             'vingt-quatre': 24, 'vingt quatre': 24, 'vingt-cinq': 25, 'vingt cinq': 25,
             'vingt-six': 26, 'vingt six': 26, 'vingt-sept': 27, 'vingt sept': 27,
             'vingt-huit': 28, 'vingt huit': 28, 'vingt-neuf': 29, 'vingt neuf': 29,
-            'trente': 30, 'trente-et-un': 31, 'trente et un': 31, 'trente-deux': 32, 'trente deux': 32,
-            'trente-trois': 33, 'trente trois': 33, 'trente-quatre': 34, 'trente quatre': 34,
-            'trente-cinq': 35, 'trente cinq': 35, 'trente-six': 36, 'trente six': 36,
-            'trente-sept': 37, 'trente sept': 37, 'trente-huit': 38, 'trente huit': 38,
-            'trente-neuf': 39, 'trente neuf': 39, 'quarante': 40, 'quarante-et-un': 41,
-            'quarante et un': 41, 'quarante-deux': 42, 'quarante deux': 42,
-            'quarante-trois': 43, 'quarante trois': 43, 'quarante-quatre': 44, 'quarante quatre': 44,
-            'quarante-cinq': 45, 'quarante cinq': 45, 'quarante-six': 46, 'quarante six': 46,
-            'quarante-sept': 47, 'quarante sept': 47, 'quarante-huit': 48, 'quarante huit': 48,
-            'quarante-neuf': 49, 'quarante neuf': 49, 'cinquante': 50, 'cinquante-et-un': 51,
-            'cinquante et un': 51, 'cinquante-deux': 52, 'cinquante deux': 52
+            'trente': 30, 'trente-et-un': 31, 'trente et un': 31, 'trente-un': 31, 'trente un': 31,
+            'trente-deux': 32, 'trente deux': 32, 'trente-trois': 33, 'trente trois': 33,
+            'trente-quatre': 34, 'trente quatre': 34, 'trente-cinq': 35, 'trente cinq': 35,
+            'trente-six': 36, 'trente six': 36, 'trente-sept': 37, 'trente sept': 37,
+            'trente-huit': 38, 'trente huit': 38, 'trente-neuf': 39, 'trente neuf': 39,
+            'quarante': 40, 'quarante-et-un': 41, 'quarante et un': 41, 'quarante-un': 41, 'quarante un': 41,
+            'quarante-deux': 42, 'quarante deux': 42, 'quarante-trois': 43, 'quarante trois': 43,
+            'quarante-quatre': 44, 'quarante quatre': 44, 'quarante-cinq': 45, 'quarante cinq': 45,
+            'quarante-six': 46, 'quarante six': 46, 'quarante-sept': 47, 'quarante sept': 47,
+            'quarante-huit': 48, 'quarante huit': 48, 'quarante-neuf': 49, 'quarante neuf': 49,
+            'cinquante': 50, 'cinquante-et-un': 51, 'cinquante et un': 51, 'cinquante-un': 51, 'cinquante un': 51,
+            'cinquante-deux': 52, 'cinquante deux': 52
         };
 
         const VALEURS_VOCALES = {
-            'as': 'A', 'un': 'A', 'une': 'A',
-            'deux': '2', 'trois': '3', 'quatre': '4', 'cinq': '5',
+            'as': 'A', 'un': '1', 'deux': '2', 'trois': '3', 'quatre': '4', 'cinq': '5',
             'six': '6', 'sept': '7', 'huit': '8', 'neuf': '9', 'dix': '10',
             'valet': 'J', 'dame': 'Q', 'roi': 'K'
         };
@@ -431,20 +432,20 @@
 
             // Cas miracle : carte déjà en position
             if (nombreACouper === 0) {
-                afficherResultat('0.0666%', carteChoisie, true);
+                afficherResultat('0.0666%', carteChoisie, true, 0);
                 return;
             }
 
             // Trouver la carte de coupe (position nombreACouper dans Mnemonica)
             const carteDeCoupe = MNEMONICA[nombreACouper - 1]; // -1 car array commence à 0
             
-            // Encoder la carte de coupe
-            const probabilite = encoderCarte(carteDeCoupe);
+            // Encoder la carte de coupe avec sa position Mnemonica
+            const probabilite = encoderCarte(carteDeCoupe, nombreACouper);
             
-            afficherResultat(probabilite, carteDeCoupe, false);
+            afficherResultat(probabilite, carteDeCoupe, false, nombreACouper);
         }
 
-        function encoderCarte(carte) {
+        function encoderCarte(carte, positionMnemonica) {
             // Extraire couleur (dernier caractère)
             const couleur = carte.slice(-1);
             // Extraire valeur (tout sauf dernier caractère)
@@ -453,10 +454,13 @@
             const codeCouleur = COULEUR_CODE[couleur];
             const codeValeur = VALEUR_CODE[valeur];
             
-            return `0.0${codeCouleur}${codeValeur}%`;
+            // Formater la position en 2 chiffres (01, 02, ..., 52)
+            const positionFormatee = positionMnemonica.toString().padStart(2, '0');
+            
+            return `0.0${codeCouleur}${codeValeur}${positionFormatee}%`;
         }
 
-        function afficherResultat(probabilite, carteInfo, isMiracle) {
+        function afficherResultat(probabilite, carteInfo, isMiracle, positionMnemonica) {
             const probElement = document.getElementById('probability');
             const infoElement = document.getElementById('cardInfo');
             
@@ -473,6 +477,7 @@
                 probElement.classList.remove('miracle');
                 infoElement.innerHTML = `
                     <strong>Carte de coupe : ${carteInfo}</strong><br>
+                    Position Mnemonica : ${positionMnemonica}<br>
                     (Couper toutes les cartes au-dessus + celle-ci vers le dessous)
                 `;
             }
